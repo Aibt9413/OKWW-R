@@ -1,0 +1,32 @@
+# Dependencies (install via pip, don't commit)
+.deps/
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+logs/
+*.log
+*.err
+
+# User configs
+configs/
+
+# Build artifacts
+dist/
+build/
+*.spec
+
+# Cache / model blobs
+cache/
+*.blob
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

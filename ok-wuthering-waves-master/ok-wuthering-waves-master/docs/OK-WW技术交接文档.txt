@@ -1,0 +1,182 @@
+================================================================================
+OK-WW 鸣潮自动化工具 —— 技术交接文档
+（MD3 蓝白毛玻璃 UI 重构 + 自定义出招宏面板）
+生成日期：2026-08-26
+用途：供后续 AI/开发者快速接手本项目，描述当前代码状态、设计决策与已知坑点。
+================================================================================
+
+一、项目概览
+--------------------------------------------------------------------------------
+1. 项目：ok-ww（鸣潮 Wuthering Waves 自动化工具，游戏挂机/自动战斗）
+2. 框架组成：
+   - ok-script 2.0.4（pip 包，提供 ok 框架：任务系统/设备/OCR/UI）
+   - PySide6 6.11 + qfluentwidgets 1.11.3 + qframelesswindow 0.8.2 + pywin32 311
+   - pyappify（打包工具，非打包运行下更新检查报错为无害）
+3. 两个重要目录：
+   - 游戏仓库：C:\tools\workstation\ok-wuthering-waves-master\ok-wuthering-waves-master\
+     （src/ 游戏逻辑、src/gui/ 自定义 UI、config.py 应用配置）
+   - UI 源码：C:\tools\workstation\qt\（= ok-script 包的 ok/ui/qt，已做 MD3 重构）
+   - 注意：ok.gui.* 是 ok.ui.qt.* 的兼容别名（MetaPathFinder 重定向），
+     src/gui 下的代码 import ok.gui.* 即对应重构后的 qt 源码。
+4. 打包/运行链路：ok-ww = ok-script 框架 + 游戏仓库配置 + pyappify 打包；
+   本机调试通过 testenv/run_okww.py 直接运行源码（管理员权限）。
+
+二、MD3 蓝白毛玻璃 UI 重构（已完成）
+--------------------------------------------------------------------------------
+1. 设计规范：Material Design 3 蓝色 + Glassmorphism，固定亮色主题
+   - 主色 #1967D2；页面背景 #FAFAFF；卡片 rgba(255,255,255,0.68)；
+     卡片边框 rgba(255,255,255,0.45)；主文字 #1D1F22；辅助 #74777C；
+     成功 #2E7D32；危险 #D93025
+   - 卡片圆角 28px，内边距 24/22/28，卡片间距 16px，页面底部留白 40px
+2. 核心改动文件（qt/ 目录）：
+   - common/design_system.py：MD3 设计 token（DesignToken 类）+ 布局/色板常量
+   - qss/light/*.qss：5 个浅色 QSS 全部 MD3 化（tab/card/status_bar/
+     message_window/setting_interface）
+   - widget/Tab.py：600px 居中内容列（pageLayout + content_container 定宽居中）、
+     窄屏响应式（<480px 缩边距与字号，通过 setCustomStyleSheet 追加覆盖规则）、
+     set_content_max_width() 豁免接口
+   - MainWindow.py：固定主题色 #1967D2、窗口底色 #FAFAFF、Win10 真亚克力
+     （qframelesswindow WindowEffect.setAcrylicEffect，tint D8FAFAFF）、
+     Win11 保持 Mica（FluentWindow 自带）
+   - common/config.py：加载后强制 Theme.LIGHT（防旧配置切回深色）
+   - util/app.py：启动即锁 qconfig.themeColor=#1967D2
+   - settings/SettingTab.py：主题切换卡隐藏（代码保留）
+   - 硬编码颜色约 16 处统一为 MD3 色板；qss/light/ 下 SVG 图标调色
+   - resources.py：已用 pyside6-rcc -g python 重新编译（含全部新 QSS/SVG）
+3. 布局策略：Tab 基类默认 600px 居中；宽内容页放宽到 960px：
+   StartTab（三列选择器）、ScheduleTaskTab（6 列表格）、CustomTab（游戏自定义页）
+4. 已知 Qt 坑（已解决）：
+   - Qt QSS 不支持祖先属性选择器（Tab[narrow="true"] #x 不生效），
+     窄屏覆盖改用 setCustomStyleSheet 追加同优先级规则
+   - qfluentwidgets 的 DirtyStyleSheetWatcher 会覆盖手动 setStyleSheet，
+     自定义样式必须走库的 CustomStyleSheet 通道
+   - 动态属性变化后需重新应用样式表才重算
+
+三、自定义出招宏面板（新增功能，全部在游戏仓库 src/gui/ 下）
+--------------------------------------------------------------------------------
+文件清单：
+- src/gui/ComboPanelTab.py        —— 面板 UI（CustomTab 子类）
+- src/gui/combos/combos_store.py  —— 数据层（JSON 读写/语法解析/分享导入）
+- src/gui/combos/hotkey_manager.py—— 全局热键（RegisterHotKey + nativeEventFilter）
+- src/gui/combos/combo_executor.py—— 执行器（暂停任务→执行序列→恢复）
+- config.py                        —— custom_tabs 注册 ["src.gui.ComboPanelTab", "ComboPanelTab"]
+- 数据文件：config/custom_combos.json（首次保存自动创建）
+
+四、OKCombo v2.1 语法（核心，务必保持与实现一致）
+--------------------------------------------------------------------------------
+规则（逐字符解析，大小写不敏感；空格/逗号为可选分隔符）：
+  1. 裸数字 1/2/3（动作字母前） = 切换角色位
+  2. 动作字母：A=普通攻击(鼠标左键点按)  H=重击(左键长按)  E=共鸣技能  Q=声骸技能
+     R=解放技能  T=工具键  J=跳跃  F=处决
+     （键盘动作全部动态读 task.key_config，不硬编码；处决键回退 'f'）
+  3. 重复次数 = 字母后括号/乘号：A(3) 或 A×3 = 普攻3次（必须括号，裸数字不表示重复）
+  4. 重击长按 = H 后裸数字：H800 = 长按800ms；H 无数字 = 该出招表的
+     heavy_hold_ms 配置（默认 1000ms）
+  5. 延迟 = D<毫秒>（如 D500）或 delay(500)；D 后接数字建议用空格分隔避免粘连
+  6. 歧义规则：动作字母后紧跟裸数字会报错（提示用空格分隔或括号），
+     切角色位数字必须与前一动作用空格/逗号分隔（如 2E 3Q）
+示例：
+  1A(3)H800 2E D300 3Q
+    = 切位1 → 普攻3次 → 重击长按800ms → 切位2共鸣 → 延迟300ms → 切位3声骸
+存储格式（JSON sequence 数组）：
+  ["slot(1)","attack(3)","heavy(800)","slot(2)","resonance","delay(300)","slot(3)","echo"]
+往返函数：parse_sequence_text(文本→列表) / sequence_to_text(列表→文本，自动补空格保无歧义)
+
+五、执行机制（combo_executor.py）
+--------------------------------------------------------------------------------
+1. 触发：全局热键 → combo_executor.trigger(combo)（独立线程执行，防重入）
+2. 流程：暂停当前任务（executor.pause(current_task)，仅暂停单个任务非整个工具）
+   → 鼠标中键点按 mb_click_count 次（默认2，解除锁定）→ 执行序列 → 恢复任务
+3. 指令间隔：每条指令后自动等待 default_interval_ms（默认120ms，可配）；
+   delay(N) 用显式 N 毫秒替代该处间隔
+4. 角色切换：目标位 = 当前位循环下一个(1→2,2→3,3→1) 时调用项目
+   task.switch_next_char()（智能切换，带入场/协奏逻辑）；跨度>1 时直接发数字键 1/2/3
+5. 绑定匹配：bind_role（角色类名在 task.chars 中）/ bind_team（角色名集合）/ bind_slot
+   （角色位）任一不匹配则 InfoBar 提示并跳过
+6. 触发次数：trigger_count>0 时达上限后忽略触发并提示（内存计数）
+
+六、全局热键（hotkey_manager.py）
+--------------------------------------------------------------------------------
+1. Win32 RegisterHotKey(None, id, mod, vk)，id 从 1000 起分配（避开 StartCard=999、
+   DebugTab=1,2）；Qt 侧通过 QApplication.installNativeEventFilter 捕获 WM_HOTKEY(0x0312)
+2. 结构要点：QAbstractNativeEventFilter 不是 QObject，信号用独立 _HotkeySignals(QObject)
+   组合承载（多继承会导致信号源被 GC 销毁——已踩坑）
+3. 冲突检测（保存时红字阻止）：
+   - 游戏键位：快捷键主键 ∈ key_config 全部值 ∪ {lmb, mouseleft}
+   - 其他出招宏重复（normalize_hotkey 比较）
+   - 系统占用：RegisterHotKey 试注册失败即被占用（Win+D 等系统热键注册必失败）
+4. hotkey 字符串格式："Ctrl+1" / "Alt+X" / "F12" / "Win+Shift+S"（normalize 统一首字母大写）
+
+七、custom_combos.json 字段 schema
+--------------------------------------------------------------------------------
+{
+  "combos": [{
+    "id": "毫秒时间戳",
+    "combo_name": "名称",
+    "bind_role": "Jinhsi" | null,       // 角色类名（53 个角色 src/char/*.py）
+    "bind_team": ["Jinhsi","Verina",...] | null,   // 角色名集合（可自定义输入）
+    "bind_slot": 1|2|3 | null,          // 角色位
+    "sequence": ["resonance","delay(200)",...],
+    "hotkey": "Ctrl+1",
+    "trigger_count": 0,                  // 0=不限
+    "mb_click_count": 2,                 // 执行前中键次数
+    "default_interval_ms": 120,          // 指令默认间隔
+    "heavy_hold_ms": 1000,               // 重击默认长按毫秒
+    "description": "招数描述",
+    "key_mapping": {...},                // 分享时附带（发送方键位映射）
+    "enabled": true,
+    "created": "...", "updated": "..."
+  }]
+}
+
+八、面板 UI 交互
+--------------------------------------------------------------------------------
+- 左侧：出招表列表 + 新建/删除/复制/导入；右侧：文本输入（实时解析预览，
+  只读列表显示 动作→实际按键）、属性区（名称/描述/绑定角色/角色位/队伍[可编辑]/
+  热键捕获控件/触发次数/中键次数/指令默认间隔/重击长按）、冲突红字、保存/取消
+- 顶部：「编辑角色代码」（内嵌 CodeEditor 打开 src/char/xxx.py 保存写回）、
+  「询问 AI」（一键复制 AI 转换提示词到剪贴板）
+- 复制分享：JSON 含 key_mapping 与全部配置；导入时若键位与本地不同，
+  InfoBar 提示差异（执行仍自动适配本地 key_config）
+- key_config 实时刷新：QTimer 1s 轮询对比 task.key_config，变化则重建预览与冲突检测
+
+九、环境与运行（本机调试）
+--------------------------------------------------------------------------------
+- Python 解释器：C:\Program Files\miclaw\resources\python-win\python.exe（3.11.9）
+  （pythonw.exe 为无控制台版本，GUI 运行用）
+- 依赖目录：C:\tools\workstation\.deps（pip --target 安装，含 PySide6/qfluentwidgets/
+  ok-script 2.0.4/opencv/onnxocr 等；win32 dll 需 add_dll_directory）
+- 启动脚本：C:\tools\workstation\testenv\run_okww.py
+  （设置 sys.path/DLL 目录/代理 127.0.0.1:7890，cwd=游戏仓库，创建 OK 并 start）
+- 管理员运行：Start-Process pythonw run_okww.py -Verb RunAs（UAC 确认）
+- 开始菜单快捷方式：「OK-WW（管理员）.lnk」（pythonw + run_okww.py，RunAs 标志）
+- 离线验证脚本：testenv/verify_real.py（真实 ok 包导入检查+渲染）、
+  test_combo_panel_v2.py（面板离屏测试）
+- 日志：testenv/okww_gui.log（pythonw stdout）、游戏仓库 logs/ok-ww.log
+
+十、重要坑点备忘（务必先读）
+--------------------------------------------------------------------------------
+1. CustomTab.executor 会被 MainWindow 赋值为 TaskExecutor（MainWindow 注册
+   custom_tabs 时 tab_obj.executor = executor）——宏执行器必须用独立属性
+   （ComboPanelTab 用 self.combo_runner），否则热键回调 AttributeError
+2. 配置文件（configs/*.json）修改必须无 BOM UTF-8 写入，否则 ok 的 JSON 解析
+   失败触发 reset_to_default 回写默认值（Auto Start 配置曾因此被回写）
+3. qfluentwidgets 的 setStyleSheet 通道会被 StyleSheetManager/DirtyStyleSheetWatcher
+   管理，自定义 QSS 用 setCustomStyleSheet；setProperty 后需重应用样式表
+4. 序列列表→文本往返必须保证无歧义（slot 前补空格），否则保存后预览失效
+   （已修复，勿回归）
+5. 热键 id 避让：999（StartCard）、1/2（DebugTab）；热键管理器从 1000 起
+6. pyappify 非打包环境 get_version_list 报错为无害（日志噪声）
+7. 自动启动游戏开关：configs/Basic Options.json 的 "Auto Start Game When App Starts"
+   （当前为 false；true 时 ok-ww 启动即拉起游戏）
+8. 离屏渲染（QT_QPA_PLATFORM=offscreen）下字体目录缺失为正常现象，不影响验证
+
+十一、当前运行状态（生成文档时）
+--------------------------------------------------------------------------------
+- ok-ww 管理员窗口运行中（pythonw + run_okww.py，PID 见 testenv/okww.pid）
+- 游戏未自动启动（Auto Start 已关闭）
+- 出招宏面板功能全部就绪：文本语法 v2.1、热键、冲突检测、AI 提示词、角色代码编辑器
+
+================================================================================
+（文档结束）
+================================================================================
