@@ -1,0 +1,16 @@
+[package]
+name = "wwcore"
+version = "1.0.0"
+edition = "2021"
+description = "Integrity-check launcher (no external deps, no anti-debug, no injection)"
+
+[[bin]]
+name = "wwcore"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 2
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"

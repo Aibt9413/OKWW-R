@@ -1,0 +1,3 @@
+[build]
+# 中文路径下 GNU ld 无法写输出，target-dir 指到纯 ASCII 路径
+target-dir = "C:/wuwa-rs-target-launcher"

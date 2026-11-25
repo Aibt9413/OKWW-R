@@ -1,32 +1,55 @@
-# Dependencies (install via pip, don't commit)
-.deps/
-__pycache__/
-*.pyc
-*.pyo
+# ============================================================
+# SonicCore / OKWW-R —— Git 忽略规则
+# ============================================================
 
-# Logs
+# ---- 构建产物（全部 build* 目录，体积数 GB，绝不能提交）----
+build/
+build_*/
+*.spec
+*.pyc
+
+# ---- Python 缓存 ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+.venv31/
+venv/
+env/
+
+# ---- 加密模型 / 大二进制（按需决定，默认排除）----
+# 你的模型容器已做 DPAPI 加密，属版权保护资产，默认不进公开仓库。
+# 若确需随源码分发，删掉下面两行即可。
+*.dat
+*.onnx
+
+# ---- 日志 / 截图 / 运行缓存 ----
 logs/
 *.log
-*.err
-
-# User configs
-configs/
-
-# Build artifacts
-dist/
-build/
-*.spec
-
-# Cache / model blobs
+screenshots/
 cache/
-*.blob
 
-# IDE
+# ---- 本地运行配置（保留在仓库里的示例除外）----
+# home.json 含壁纸路径、窗口绑定等个人状态；config/ 运行态目录也不提交。
+configs/home.json
+config/
+
+# ---- 打包 / 分发产物 ----
+dist/
+*.exe
+*.msi
+*.zip
+*.tar.gz
+
+# ---- 编辑器 / 系统 ----
 .vscode/
 .idea/
-*.swp
-
-# OS
-Thumbs.db
-Desktop.ini
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 备份树 ----
+_backup*/
+*.bak
+*.orig
