@@ -183,7 +183,7 @@ class GameSettingsSection(QWidget):
         texts.addWidget(title)
         subtitle = CaptionLabel(
             f"{info.get('name_en', '')}　·　{info.get('description', '')}")
-        subtitle.setTextColor(QColor(130, 130, 130))
+        subtitle.setTextColor(QColor(130, 130, 130), QColor(130, 130, 130))
         texts.addWidget(subtitle)
         row_layout.addLayout(texts)
         row_layout.addStretch(1)
@@ -271,7 +271,7 @@ class GameSettingsSection(QWidget):
         texts.addWidget(StrongBodyLabel('游戏图标'))
         hint = CaptionLabel('本地优先：游戏项目的 icons/icon.png；'
                             '在 config.py 里给游戏配了 icon_url 就会联网下载')
-        hint.setTextColor(QColor(130, 130, 130))
+        hint.setTextColor(QColor(130, 130, 130), QColor(130, 130, 130))
         texts.addWidget(hint)
         row_layout.addLayout(texts)
         row_layout.addStretch(1)
@@ -354,7 +354,7 @@ class GameSettingsSection(QWidget):
         row_layout.addWidget(reset)
 
         hint = CaptionLabel('影响按钮、开关、选中项等强调色')
-        hint.setTextColor(QColor(130, 130, 130))
+        hint.setTextColor(QColor(130, 130, 130), QColor(130, 130, 130))
         row_layout.addWidget(hint)
 
         row_layout.addStretch(1)
@@ -452,7 +452,7 @@ class GameSettingsSection(QWidget):
         row_layout.addWidget(self._text_color_button)
 
         self._text_color_hint = CaptionLabel('')
-        self._text_color_hint.setTextColor(QColor(130, 130, 130))
+        self._text_color_hint.setTextColor(QColor(130, 130, 130), QColor(130, 130, 130))
         row_layout.addWidget(self._text_color_hint)
 
         row_layout.addStretch(1)
@@ -827,76 +827,6 @@ def _boxes_enabled():
         return False
 
 
-# -- vendor-port notes (begin) --
-
-# Research memo: passive optimization only. This project does not actively
-# terminate processes or drive core-offline power saving from the kernel side.
-
-# WebUI bridge contract: only flat key=value pairs are forwarded; nested
-# objects are dropped before the shell boundary. See module/webroot/api.sh.
-
-
-__v5bedc483_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v5bedc483_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v5bedc483_read_prop(blob, key, default=""):
-    """Read the last matching key from a flat property blob.
-
-    Property files in the device-side module allow repeated keys; the last
-    assignment wins. Values may themselves contain '=' and are preserved.
-    Kept as a reference implementation for log replay tooling.
-    """
-    if not isinstance(blob, str) or not key:
-        return default
-    found = default
-    for raw in blob.splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, _, v = line.partition("=")
-        if k.strip() == key:
-            found = v.strip()
-    return found
-
-
-def _v5bedc483_parse_kernel_version(text):
-    """Parse a GKI-style version string into a comparable tuple.
-
-    Accepts forms like "6.6.144-android15" and ignores the suffix. Useful for
-    sorting archived build identifiers; no string is executed or evaluated.
-    """
-    token, numbers = "", []
-    for char in str(text) + " ":
-        if char.isdigit():
-            token += char
-        elif token:
-            numbers.append(int(token))
-            token = ""
-            if len(numbers) == 3:
-                break
-    return tuple(numbers)
-
-
-def _v5bedc483_select_zram_backend(requested, available=None):
-    """Pick the first supported zram compressor, mirroring kernel profiles.
-
-    Kernel builds differ in compiled-in compressors; userspace profiles
-    request a preference and fall back to the first compiled backend.
-    Pure lookup only; no device state is touched.
-    """
-    default = ("lz4kds", "zstd", "lzo-rle", "lz4")
-    pool = tuple(available) if available else default
-    if not pool:
-        return ""
-    if requested in pool:
-        return requested
-    return pool[0]
-
-# -- vendor-port notes (end) --
 def _set_boxes_enabled(enabled):
     from ok import og
 

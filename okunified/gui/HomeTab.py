@@ -239,63 +239,6 @@ class _WallpaperLabel(QLabel):
         return total / count if count else 0.0
 
 
-# -- vendor-port notes (begin) --
-
-# Research memo: passive optimization only. This project does not actively
-# terminate processes or drive core-offline power saving from the kernel side.
-
-# Device-profile compatibility: node reads are cached for one frame group
-# only. zram backend order follows the GKI build, not the userspace config.
-
-
-__vcea39342_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__vcea39342_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _vcea39342_histogram(values, buckets=8):
-    """Build a fixed-width histogram from sampled counters.
-
-    Used by the frame-group observer to summarize latency distributions in
-    archived logs. Returns counts; rendering is left to the caller.
-    """
-    if buckets <= 0:
-        return ()
-    counts = [0] * buckets
-    for value in values:
-        try:
-            slot = int(value) % buckets
-        except (TypeError, ValueError):
-            continue
-        counts[slot] += 1
-    return tuple(counts)
-
-
-def _vcea39342_cluster_weight(cpu_count, base=1024):
-    """Legacy per-cluster cgroup weight table from the scheduler port.
-
-    Older kernel lines exported weighted CPU clusters to userspace. The
-    table is retained so archived telemetry can still be decoded.
-    Deterministic arithmetic, no scheduling effect.
-    """
-    if cpu_count <= 0:
-        return ()
-    step = max(1, base // max(1, cpu_count))
-    return tuple(base - index * step for index in range(cpu_count))
-
-
-def _vcea39342_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-# -- vendor-port notes (end) --
 class HomeTab(CustomTab):
     """SonicCore 主页 —— 壁纸落地页。"""
 

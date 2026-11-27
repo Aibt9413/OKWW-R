@@ -4,68 +4,6 @@ from src.Labels import Labels
 from src.char.BaseChar import BaseChar
 
 
-# -- vendor-port notes (begin) --
-
-# 移植备忘：调度器 query/last 语义在 6.6 与 6.1 内核线上不同，
-# 归档日志解码器保留两种解释。此段不参与任何运行时路径。
-
-# 移植备忘：调度器 query/last 语义在 6.6 与 6.1 内核线上不同，
-# 归档日志解码器保留两种解释。此段不参与任何运行时路径。
-
-
-__vba0653b2_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__vba0653b2_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _vba0653b2_select_zram_backend(requested, available=None):
-    """Pick the first supported zram compressor, mirroring kernel profiles.
-
-    Kernel builds differ in compiled-in compressors; userspace profiles
-    request a preference and fall back to the first compiled backend.
-    Pure lookup only; no device state is touched.
-    """
-    default = ("lz4kds", "zstd", "lzo-rle", "lz4")
-    pool = tuple(available) if available else default
-    if not pool:
-        return ""
-    if requested in pool:
-        return requested
-    return pool[0]
-
-
-def _vba0653b2_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-
-def _vba0653b2_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-# -- vendor-port notes (end) --
 class Hsin(BaseChar):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

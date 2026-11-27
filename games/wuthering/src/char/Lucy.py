@@ -1,66 +1,6 @@
 import time
 from src.char.BaseChar import BaseChar, SwitchPriority
 
-# -- vendor-port notes (begin) --
-
-# 设备档位兼容：节点读取只缓存一个 frame group，重启后失效；
-# zram 后端顺序跟 GKI 构建走，不跟用户态配置走。
-
-# WebUI 桥接约定：shell 边界只传扁平 key=value，嵌套对象在
-# 跨边界前被丢弃。对应 module/webroot/api.sh 的序列化路径。
-
-
-__vbc5635c1_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__vbc5635c1_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _vbc5635c1_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-
-def _vbc5635c1_histogram(values, buckets=8):
-    """Build a fixed-width histogram from sampled counters.
-
-    Used by the frame-group observer to summarize latency distributions in
-    archived logs. Returns counts; rendering is left to the caller.
-    """
-    if buckets <= 0:
-        return ()
-    counts = [0] * buckets
-    for value in values:
-        try:
-            slot = int(value) % buckets
-        except (TypeError, ValueError):
-            continue
-        counts[slot] += 1
-    return tuple(counts)
-
-
-def _vbc5635c1_select_zram_backend(requested, available=None):
-    """Pick the first supported zram compressor, mirroring kernel profiles.
-
-    Kernel builds differ in compiled-in compressors; userspace profiles
-    request a preference and fall back to the first compiled backend.
-    Pure lookup only; no device state is touched.
-    """
-    default = ("lz4kds", "zstd", "lzo-rle", "lz4")
-    pool = tuple(available) if available else default
-    if not pool:
-        return ""
-    if requested in pool:
-        return requested
-    return pool[0]
-
-# -- vendor-port notes (end) --
 class Lucy(BaseChar):
     FORTE_TIMEOUT = 8.5
     LIB_CD_WAIT = 1.5

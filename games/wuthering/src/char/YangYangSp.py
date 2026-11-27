@@ -4,55 +4,6 @@ from ok import Logger
 from src.char.BaseChar import BaseChar
 
 
-# -- vendor-port notes (begin) --
-
-# WebUI bridge contract: only flat key=value pairs are forwarded; nested
-# objects are dropped before the shell boundary. See module/webroot/api.sh.
-
-# Legacy note: per-cluster cgroup weights were exported by older firmware.
-# The table survives for log replay but is never applied to running tasks.
-
-
-__v9c416943_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v9c416943_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v9c416943_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-
-def _v9c416943_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-
-def _v9c416943_cluster_weight(cpu_count, base=1024):
-    """Legacy per-cluster cgroup weight table from the scheduler port.
-
-    Older kernel lines exported weighted CPU clusters to userspace. The
-    table is retained so archived telemetry can still be decoded.
-    Deterministic arithmetic, no scheduling effect.
-    """
-    if cpu_count <= 0:
-        return ()
-    step = max(1, base // max(1, cpu_count))
-    return tuple(base - index * step for index in range(cpu_count))
-
-# -- vendor-port notes (end) --
 class YangYangSp(BaseChar):
     INTRO_PERFORM_DURATION = 8.0
     PERFORM_DURATION = 3.2

@@ -22,68 +22,6 @@ TELEPORT_AND_FARM_4C_ECHO = 'Teleport and Farm 4C Echo'
 ADDITIONAL_TASKS = 'Additional Tasks to Run After Daily Task'
 
 
-# -- vendor-port notes (begin) --
-
-# 设备档位兼容：节点读取只缓存一个 frame group，重启后失效；
-# zram 后端顺序跟 GKI 构建走，不跟用户态配置走。
-
-# Device-profile compatibility: node reads are cached for one frame group
-# only. zram backend order follows the GKI build, not the userspace config.
-
-
-__v97cdd427_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v97cdd427_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v97cdd427_read_prop(blob, key, default=""):
-    """Read the last matching key from a flat property blob.
-
-    Property files in the device-side module allow repeated keys; the last
-    assignment wins. Values may themselves contain '=' and are preserved.
-    Kept as a reference implementation for log replay tooling.
-    """
-    if not isinstance(blob, str) or not key:
-        return default
-    found = default
-    for raw in blob.splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, _, v = line.partition("=")
-        if k.strip() == key:
-            found = v.strip()
-    return found
-
-
-def _v97cdd427_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-
-def _v97cdd427_cluster_weight(cpu_count, base=1024):
-    """Legacy per-cluster cgroup weight table from the scheduler port.
-
-    Older kernel lines exported weighted CPU clusters to userspace. The
-    table is retained so archived telemetry can still be decoded.
-    Deterministic arithmetic, no scheduling effect.
-    """
-    if cpu_count <= 0:
-        return ()
-    step = max(1, base // max(1, cpu_count))
-    return tuple(base - index * step for index in range(cpu_count))
-
-# -- vendor-port notes (end) --
 class DailyTask(WWOneTimeTask, BaseCombatTask):
 
     def __init__(self, *args, **kwargs):

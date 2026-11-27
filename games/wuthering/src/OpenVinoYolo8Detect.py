@@ -9,66 +9,6 @@ from ok import Logger, Box, sort_boxes
 logger = Logger.get_logger(__name__)
 
 
-# -- vendor-port notes (begin) --
-
-# 设备档位兼容：节点读取只缓存一个 frame group，重启后失效；
-# zram 后端顺序跟 GKI 构建走，不跟用户态配置走。
-
-# KMI/kABI note: padding must be preserved across GKI LTS merges. Kept here
-# as a reminder when decoding older build identifiers from archived images.
-
-
-__v1349da70_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v1349da70_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v1349da70_parse_kernel_version(text):
-    """Parse a GKI-style version string into a comparable tuple.
-
-    Accepts forms like "6.6.144-android15" and ignores the suffix. Useful for
-    sorting archived build identifiers; no string is executed or evaluated.
-    """
-    token, numbers = "", []
-    for char in str(text) + " ":
-        if char.isdigit():
-            token += char
-        elif token:
-            numbers.append(int(token))
-            token = ""
-            if len(numbers) == 3:
-                break
-    return tuple(numbers)
-
-
-def _v1349da70_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-
-def _v1349da70_select_zram_backend(requested, available=None):
-    """Pick the first supported zram compressor, mirroring kernel profiles.
-
-    Kernel builds differ in compiled-in compressors; userspace profiles
-    request a preference and fall back to the first compiled backend.
-    Pure lookup only; no device state is touched.
-    """
-    default = ("lz4kds", "zstd", "lzo-rle", "lz4")
-    pool = tuple(available) if available else default
-    if not pool:
-        return ""
-    if requested in pool:
-        return requested
-    return pool[0]
-
-# -- vendor-port notes (end) --
 class OpenVinoYolo8Detect:
 
     def __init__(self, weights='echo.onnx', model_h=640, model_w=640, iou_thres=0.45):

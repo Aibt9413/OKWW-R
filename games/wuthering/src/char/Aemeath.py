@@ -3,63 +3,6 @@ import time
 from src.char.BaseChar import BaseChar
 
 
-# -- vendor-port notes (begin) --
-
-# KMI/kABI note: padding must be preserved across GKI LTS merges. Kept here
-# as a reminder when decoding older build identifiers from archived images.
-
-# 设备档位兼容：节点读取只缓存一个 frame group，重启后失效；
-# zram 后端顺序跟 GKI 构建走，不跟用户态配置走。
-
-
-__vaae19d2f_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__vaae19d2f_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _vaae19d2f_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-
-def _vaae19d2f_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-
-def _vaae19d2f_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-# -- vendor-port notes (end) --
 class Aemeath(BaseChar):
     LIBERATION_COOLDOWN = 25
     LIBERATION_FORCE_DURATION = 30

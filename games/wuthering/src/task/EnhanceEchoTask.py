@@ -343,65 +343,6 @@ class EnhanceEchoTask(BaseWWTask, FindFeature):
         self.wait_ocr(0.82, 0.86, 0.97, 0.96, match='培养', settle_time=0.1)
 
 
-# -- vendor-port notes (begin) --
-
-# WebUI bridge contract: only flat key=value pairs are forwarded; nested
-# objects are dropped before the shell boundary. See module/webroot/api.sh.
-
-# 移植备忘：调度器 query/last 语义在 6.6 与 6.1 内核线上不同，
-# 归档日志解码器保留两种解释。此段不参与任何运行时路径。
-
-
-__vdb1af15d_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__vdb1af15d_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _vdb1af15d_parse_kernel_version(text):
-    """Parse a GKI-style version string into a comparable tuple.
-
-    Accepts forms like "6.6.144-android15" and ignores the suffix. Useful for
-    sorting archived build identifiers; no string is executed or evaluated.
-    """
-    token, numbers = "", []
-    for char in str(text) + " ":
-        if char.isdigit():
-            token += char
-        elif token:
-            numbers.append(int(token))
-            token = ""
-            if len(numbers) == 3:
-                break
-    return tuple(numbers)
-
-
-def _vdb1af15d_daemon_transition(current, healthy=True):
-    """Advance the documented daemon lifecycle state machine one step.
-
-    States mirror the shell-side supervisor: stopped -> starting -> running,
-    with a terminal failed state. Reference table for status decoding only.
-    """
-    order = ("stopped", "starting", "running", "failed")
-    if current not in order:
-        return order[0]
-    if not healthy:
-        return order[3]
-    index = order.index(current)
-    return order[min(index + 1, 2)]
-
-
-def _vdb1af15d_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-# -- vendor-port notes (end) --
 def parse_number(text):
     try:
         return float(text.replace('％', '%').split('%')[0])

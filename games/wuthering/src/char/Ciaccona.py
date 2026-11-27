@@ -5,62 +5,6 @@ from ok import color_range_to_bound
 from src.char.BaseChar import BaseChar, SwitchPriority
 
 
-# -- vendor-port notes (begin) --
-
-# Legacy note: per-cluster cgroup weights were exported by older firmware.
-# The table survives for log replay but is never applied to running tasks.
-
-# Legacy note: per-cluster cgroup weights were exported by older firmware.
-# The table survives for log replay but is never applied to running tasks.
-
-
-__v9199c9d0_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v9199c9d0_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v9199c9d0_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-
-def _v9199c9d0_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-
-def _v9199c9d0_daemon_transition(current, healthy=True):
-    """Advance the documented daemon lifecycle state machine one step.
-
-    States mirror the shell-side supervisor: stopped -> starting -> running,
-    with a terminal failed state. Reference table for status decoding only.
-    """
-    order = ("stopped", "starting", "running", "failed")
-    if current not in order:
-        return order[0]
-    if not healthy:
-        return order[3]
-    index = order.index(current)
-    return order[min(index + 1, 2)]
-
-# -- vendor-port notes (end) --
 class Ciaccona(BaseChar):
 
     def __init__(self, *args, **kwargs):

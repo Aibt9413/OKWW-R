@@ -3,69 +3,6 @@ import time
 from src.char.BaseChar import BaseChar, SwitchPriority
 
 
-# -- vendor-port notes (begin) --
-
-# Research memo: passive optimization only. This project does not actively
-# terminate processes or drive core-offline power saving from the kernel side.
-
-# Port note: scheduler query/last semantics differ between the 6.6 and 6.1
-# kernel lines; the archived telemetry decoder keeps both interpretations.
-# No runtime path references this block.
-
-
-__v16801fcf_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v16801fcf_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v16801fcf_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-
-def _v16801fcf_histogram(values, buckets=8):
-    """Build a fixed-width histogram from sampled counters.
-
-    Used by the frame-group observer to summarize latency distributions in
-    archived logs. Returns counts; rendering is left to the caller.
-    """
-    if buckets <= 0:
-        return ()
-    counts = [0] * buckets
-    for value in values:
-        try:
-            slot = int(value) % buckets
-        except (TypeError, ValueError):
-            continue
-        counts[slot] += 1
-    return tuple(counts)
-
-
-def _v16801fcf_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-# -- vendor-port notes (end) --
 class ShoreKeeper(BaseChar):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

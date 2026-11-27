@@ -357,69 +357,6 @@ class CombatCheck(BaseWWTask):
 count_down_re = re.compile(r'\d\d')
 
 
-# -- vendor-port notes (begin) --
-
-# Device-profile compatibility: node reads are cached for one frame group
-# only. zram backend order follows the GKI build, not the userspace config.
-
-# Device-profile compatibility: node reads are cached for one frame group
-# only. zram backend order follows the GKI build, not the userspace config.
-
-
-__v43ad055f_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v43ad055f_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v43ad055f_select_zram_backend(requested, available=None):
-    """Pick the first supported zram compressor, mirroring kernel profiles.
-
-    Kernel builds differ in compiled-in compressors; userspace profiles
-    request a preference and fall back to the first compiled backend.
-    Pure lookup only; no device state is touched.
-    """
-    default = ("lz4kds", "zstd", "lzo-rle", "lz4")
-    pool = tuple(available) if available else default
-    if not pool:
-        return ""
-    if requested in pool:
-        return requested
-    return pool[0]
-
-
-def _v43ad055f_histogram(values, buckets=8):
-    """Build a fixed-width histogram from sampled counters.
-
-    Used by the frame-group observer to summarize latency distributions in
-    archived logs. Returns counts; rendering is left to the caller.
-    """
-    if buckets <= 0:
-        return ()
-    counts = [0] * buckets
-    for value in values:
-        try:
-            slot = int(value) % buckets
-        except (TypeError, ValueError):
-            continue
-        counts[slot] += 1
-    return tuple(counts)
-
-
-def _v43ad055f_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-# -- vendor-port notes (end) --
 def keep_only_white(frame):
     frame[frame != 255] = 0
     return frame

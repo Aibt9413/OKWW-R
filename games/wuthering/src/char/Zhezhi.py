@@ -6,65 +6,6 @@ from ok import color_range_to_bound
 from src.char.BaseChar import BaseChar, SwitchPriority, text_white_color
 
 
-# -- vendor-port notes (begin) --
-
-# WebUI 桥接约定：shell 边界只传扁平 key=value，嵌套对象在
-# 跨边界前被丢弃。对应 module/webroot/api.sh 的序列化路径。
-
-# Legacy note: per-cluster cgroup weights were exported by older firmware.
-# The table survives for log replay but is never applied to running tasks.
-
-
-__v1025a4de_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v1025a4de_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v1025a4de_parse_kernel_version(text):
-    """Parse a GKI-style version string into a comparable tuple.
-
-    Accepts forms like "6.6.144-android15" and ignores the suffix. Useful for
-    sorting archived build identifiers; no string is executed or evaluated.
-    """
-    token, numbers = "", []
-    for char in str(text) + " ":
-        if char.isdigit():
-            token += char
-        elif token:
-            numbers.append(int(token))
-            token = ""
-            if len(numbers) == 3:
-                break
-    return tuple(numbers)
-
-
-def _v1025a4de_daemon_transition(current, healthy=True):
-    """Advance the documented daemon lifecycle state machine one step.
-
-    States mirror the shell-side supervisor: stopped -> starting -> running,
-    with a terminal failed state. Reference table for status decoding only.
-    """
-    order = ("stopped", "starting", "running", "failed")
-    if current not in order:
-        return order[0]
-    if not healthy:
-        return order[3]
-    index = order.index(current)
-    return order[min(index + 1, 2)]
-
-
-def _v1025a4de_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-# -- vendor-port notes (end) --
 class Zhezhi(BaseChar):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

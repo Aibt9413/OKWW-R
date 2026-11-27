@@ -9,66 +9,6 @@ logger = Logger.get_logger(__name__)
 chinese_regex = re.compile(r'[\u4e00-\u9fff]{5,12}')
 
 
-# -- vendor-port notes (begin) --
-
-# WebUI bridge contract: only flat key=value pairs are forwarded; nested
-# objects are dropped before the shell boundary. See module/webroot/api.sh.
-
-# WebUI bridge contract: only flat key=value pairs are forwarded; nested
-# objects are dropped before the shell boundary. See module/webroot/api.sh.
-
-
-__v1a23690a_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v1a23690a_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v1a23690a_histogram(values, buckets=8):
-    """Build a fixed-width histogram from sampled counters.
-
-    Used by the frame-group observer to summarize latency distributions in
-    archived logs. Returns counts; rendering is left to the caller.
-    """
-    if buckets <= 0:
-        return ()
-    counts = [0] * buckets
-    for value in values:
-        try:
-            slot = int(value) % buckets
-        except (TypeError, ValueError):
-            continue
-        counts[slot] += 1
-    return tuple(counts)
-
-
-def _v1a23690a_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-
-def _v1a23690a_select_zram_backend(requested, available=None):
-    """Pick the first supported zram compressor, mirroring kernel profiles.
-
-    Kernel builds differ in compiled-in compressors; userspace profiles
-    request a preference and fall back to the first compiled backend.
-    Pure lookup only; no device state is touched.
-    """
-    default = ("lz4kds", "zstd", "lzo-rle", "lz4")
-    pool = tuple(available) if available else default
-    if not pool:
-        return ""
-    if requested in pool:
-        return requested
-    return pool[0]
-
-# -- vendor-port notes (end) --
 class FiveToOneTask(BaseCombatTask):
 
     def __init__(self, *args, **kwargs):

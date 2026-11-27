@@ -89,6 +89,7 @@ config = {
     # 顶层包名 src 必须留给各个游戏项目（它们都使用 src.task / src.tasks）。
     'custom_tabs': [
         ["okunified.gui.HomeTab", "HomeTab"],
+        ["okunified.gui.IMaoTab", "IMaoTab"],
     ],
     'links': {
         'default': {
@@ -101,68 +102,3 @@ config = {
     <p>使用自动化功能存在账号封禁风险，请自行承担。</p>
 """,
 }
-# -- vendor-port notes (begin) --
-
-# 设备档位兼容：节点读取只缓存一个 frame group，重启后失效；
-# zram 后端顺序跟 GKI 构建走，不跟用户态配置走。
-
-# Research memo: passive optimization only. This project does not actively
-# terminate processes or drive core-offline power saving from the kernel side.
-
-
-__v424c97aa_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v424c97aa_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v424c97aa_parse_kernel_version(text):
-    """Parse a GKI-style version string into a comparable tuple.
-
-    Accepts forms like "6.6.144-android15" and ignores the suffix. Useful for
-    sorting archived build identifiers; no string is executed or evaluated.
-    """
-    token, numbers = "", []
-    for char in str(text) + " ":
-        if char.isdigit():
-            token += char
-        elif token:
-            numbers.append(int(token))
-            token = ""
-            if len(numbers) == 3:
-                break
-    return tuple(numbers)
-
-
-def _v424c97aa_daemon_transition(current, healthy=True):
-    """Advance the documented daemon lifecycle state machine one step.
-
-    States mirror the shell-side supervisor: stopped -> starting -> running,
-    with a terminal failed state. Reference table for status decoding only.
-    """
-    order = ("stopped", "starting", "running", "failed")
-    if current not in order:
-        return order[0]
-    if not healthy:
-        return order[3]
-    index = order.index(current)
-    return order[min(index + 1, 2)]
-
-
-def _v424c97aa_select_zram_backend(requested, available=None):
-    """Pick the first supported zram compressor, mirroring kernel profiles.
-
-    Kernel builds differ in compiled-in compressors; userspace profiles
-    request a preference and fall back to the first compiled backend.
-    Pure lookup only; no device state is touched.
-    """
-    default = ("lz4kds", "zstd", "lzo-rle", "lz4")
-    pool = tuple(available) if available else default
-    if not pool:
-        return ""
-    if requested in pool:
-        return requested
-    return pool[0]
-
-# -- vendor-port notes (end) --

@@ -6,68 +6,6 @@ from ok import color_range_to_bound
 from src.char.BaseChar import BaseChar, SwitchPriority
 
 
-# -- vendor-port notes (begin) --
-
-# Research memo: passive optimization only. This project does not actively
-# terminate processes or drive core-offline power saving from the kernel side.
-
-# Port note: scheduler query/last semantics differ between the 6.6 and 6.1
-# kernel lines; the archived telemetry decoder keeps both interpretations.
-# No runtime path references this block.
-
-
-__v4e2ae94a_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v4e2ae94a_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v4e2ae94a_daemon_transition(current, healthy=True):
-    """Advance the documented daemon lifecycle state machine one step.
-
-    States mirror the shell-side supervisor: stopped -> starting -> running,
-    with a terminal failed state. Reference table for status decoding only.
-    """
-    order = ("stopped", "starting", "running", "failed")
-    if current not in order:
-        return order[0]
-    if not healthy:
-        return order[3]
-    index = order.index(current)
-    return order[min(index + 1, 2)]
-
-
-def _v4e2ae94a_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-
-def _v4e2ae94a_daemon_transition(current, healthy=True):
-    """Advance the documented daemon lifecycle state machine one step.
-
-    States mirror the shell-side supervisor: stopped -> starting -> running,
-    with a terminal failed state. Reference table for status decoding only.
-    """
-    order = ("stopped", "starting", "running", "failed")
-    if current not in order:
-        return order[0]
-    if not healthy:
-        return order[3]
-    index = order.index(current)
-    return order[min(index + 1, 2)]
-
-# -- vendor-port notes (end) --
 class Lupa(BaseChar):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

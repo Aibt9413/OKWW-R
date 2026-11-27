@@ -2,8 +2,9 @@
 
 基于 [OKWW-R](https://github.com/Aibt9413/OKWW-R)（其上游为 [ok-wuthering-waves](https://github.com/ok-oldking/ok-wuthering-waves)）的二改衍生分支。
 
-> 本项目最初用于测试 AI 代码生成的质量。在 OKWW 的自动化框架基础上，改造了启动器界面，并增加了版权保护与发布相关能力：模型 DPAPI 不落盘加密、Rust SHA256 校验壳、进程名中性化、静态混淆）、单 exe SFX 封装、管理员权限与纯英文路径校验、系统 Python 缺失提示。
+> 本项目最初用于测试 AI 代码生成的质量。在 OKWW-R 的自动化框架基础上，改造了启动器界面，并增加了版权保护与发布相关能力：模型 DPAPI 不落盘加密、Rust SHA256 校验壳、进程名中性化、静态混淆（版权保护，不做动态反作弊对抗）、单 exe SFX 封装、管理员权限与纯英文路径校验、系统 Python 缺失提示。
 >
+> 保留 SonicCore 品牌，清空了上游工坊 / GitHub submodule URL，日志名中性化。
 
 #注意：非 ok-wuthering-waves 官方版本，也不保证更新。
 #精力有限，同时不是专业开发人员，不保证更新。
@@ -59,6 +60,18 @@ soniccore/
     ├── obfuscate.py        # 静态混淆（--apply / --undo / --verify）
     └── pack_single.py      # 单文件打包与校验
 ```
+
+## 🗺️ 附带组件：IMAO 地图工具
+
+SonicCore 随包附带 [IMAO](https://github.com/kahvia-d/IMAO)（鸣潮地图叠加/导航工具）的官方发布包，作为**独立进程**由「地图工具」页启动。两者是**聚合关系**：SonicCore 不链接、不修改 IMAO 代码，也未将其纳入 PyInstaller/SFX 主程序。
+
+IMAO 采用 **GPL-3.0** 许可证，版权归 kahvia-d 及其贡献者所有：
+
+- 上游源码：https://github.com/kahvia-d/IMAO
+- GPL-3.0 全文：https://www.gnu.org/licenses/gpl-3.0.html
+- 随包附带的 IMAO 发布包保持原样，未做修改
+
+SonicCore 自身代码不受 GPL 传染（聚合分发），但为尊重上游许可，在此明确标注其归属与许可证。
 
 ## 版权与归属
 

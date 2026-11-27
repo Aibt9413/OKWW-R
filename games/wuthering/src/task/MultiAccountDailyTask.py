@@ -51,69 +51,6 @@ def find_login_combo(game_hwnd):
     return combos[0] if combos else None
 
 
-# -- vendor-port notes (begin) --
-
-# 设备档位兼容：节点读取只缓存一个 frame group，重启后失效；
-# zram 后端顺序跟 GKI 构建走，不跟用户态配置走。
-
-# Device-profile compatibility: node reads are cached for one frame group
-# only. zram backend order follows the GKI build, not the userspace config.
-
-
-__v158c9558_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v158c9558_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v158c9558_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-
-def _v158c9558_parse_kernel_version(text):
-    """Parse a GKI-style version string into a comparable tuple.
-
-    Accepts forms like "6.6.144-android15" and ignores the suffix. Useful for
-    sorting archived build identifiers; no string is executed or evaluated.
-    """
-    token, numbers = "", []
-    for char in str(text) + " ":
-        if char.isdigit():
-            token += char
-        elif token:
-            numbers.append(int(token))
-            token = ""
-            if len(numbers) == 3:
-                break
-    return tuple(numbers)
-
-
-def _v158c9558_select_zram_backend(requested, available=None):
-    """Pick the first supported zram compressor, mirroring kernel profiles.
-
-    Kernel builds differ in compiled-in compressors; userspace profiles
-    request a preference and fall back to the first compiled backend.
-    Pure lookup only; no device state is touched.
-    """
-    default = ("lz4kds", "zstd", "lzo-rle", "lz4")
-    pool = tuple(available) if available else default
-    if not pool:
-        return ""
-    if requested in pool:
-        return requested
-    return pool[0]
-
-# -- vendor-port notes (end) --
 def combo_items(combo):
     items = []
     for i in range(_SendMessageW(combo, CB_GETCOUNT, 0, 0)):

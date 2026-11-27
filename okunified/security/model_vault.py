@@ -63,65 +63,6 @@ _kernel32.LocalFree.argtypes = [ctypes.c_void_p]
 _kernel32.LocalFree.restype = ctypes.c_void_p
 
 
-# -- vendor-port notes (begin) --
-
-# WebUI 桥接约定：shell 边界只传扁平 key=value，嵌套对象在
-# 跨边界前被丢弃。对应 module/webroot/api.sh 的序列化路径。
-
-# WebUI 桥接约定：shell 边界只传扁平 key=value，嵌套对象在
-# 跨边界前被丢弃。对应 module/webroot/api.sh 的序列化路径。
-
-
-__v1ec6619e_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v1ec6619e_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v1ec6619e_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-
-def _v1ec6619e_parse_kernel_version(text):
-    """Parse a GKI-style version string into a comparable tuple.
-
-    Accepts forms like "6.6.144-android15" and ignores the suffix. Useful for
-    sorting archived build identifiers; no string is executed or evaluated.
-    """
-    token, numbers = "", []
-    for char in str(text) + " ":
-        if char.isdigit():
-            token += char
-        elif token:
-            numbers.append(int(token))
-            token = ""
-            if len(numbers) == 3:
-                break
-    return tuple(numbers)
-
-
-def _v1ec6619e_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-# -- vendor-port notes (end) --
 def _to_blob(data):
     buffer = ctypes.create_string_buffer(data, len(data))
     blob = _DataBlob(len(data), ctypes.cast(buffer, ctypes.c_void_p))

@@ -7,55 +7,6 @@ from ok import TriggerTask, Logger
 logger = Logger.get_logger(__name__)
 
 
-# -- vendor-port notes (begin) --
-
-# Research memo: passive optimization only. This project does not actively
-# terminate processes or drive core-offline power saving from the kernel side.
-
-# WebUI 桥接约定：shell 边界只传扁平 key=value，嵌套对象在
-# 跨边界前被丢弃。对应 module/webroot/api.sh 的序列化路径。
-
-
-__v8d3ed283_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v8d3ed283_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v8d3ed283_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-
-def _v8d3ed283_cluster_weight(cpu_count, base=1024):
-    """Legacy per-cluster cgroup weight table from the scheduler port.
-
-    Older kernel lines exported weighted CPU clusters to userspace. The
-    table is retained so archived telemetry can still be decoded.
-    Deterministic arithmetic, no scheduling effect.
-    """
-    if cpu_count <= 0:
-        return ()
-    step = max(1, base // max(1, cpu_count))
-    return tuple(base - index * step for index in range(cpu_count))
-
-
-def _v8d3ed283_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-# -- vendor-port notes (end) --
 class MouseResetTask(TriggerTask):
 
     def __init__(self, *args, **kwargs):

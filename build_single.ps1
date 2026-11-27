@@ -58,16 +58,26 @@ try {
         $addConfigs = "$root\configs;configs"
         $addIcons = "$root\icons;icons"
         $addI18n = "$root\i18n;i18n"
+        # IMAO 地图工具完整包（GPL-3.0，独立进程，随 SC 聚合分发）。
+        # 只作为数据文件放进 _internal/imao，不参与 Python 收集。
+        $imaoArgs = @()
+        $imaoZip = Join-Path $root 'imao\IMao-windows-x64.zip'
+        if (Test-Path -LiteralPath $imaoZip) {
+            $imaoArgs = @('--add-data', "$root\imao;imao")
+        } else {
+            Write-Warning "IMAO 包不存在：$imaoZip —— 本次构建「地图工具」页将无程序可启动"
+        }
 
         & $PY -m PyInstaller --noconfirm --onedir --windowed `
             --name $PAYLOAD_EXE `
             --distpath $PYI_DIR --workpath $WORK_DIR --specpath $SPEC_DIR `
             --add-data $addAssets --add-data $addGameAssets --add-data $addGameI18n `
             --add-data $addConfigs --add-data $addIcons --add-data $addI18n `
-            --add-data $addGameConfig `
+            --add-data $addGameConfig @imaoArgs `
             --collect-submodules src --collect-submodules ok --collect-submodules okunified `
             --collect-all onnxocr --collect-all qfluentwidgets --collect-all qframelesswindow `
             --collect-all darkdetect --collect-all shapely --collect-all pyclipper `
+            --collect-all win32 --collect-all pywin32_system32 `
             main.py
         if ($LASTEXITCODE -ne 0) { throw "PyInstaller 构建失败，exit=$LASTEXITCODE" }
     }

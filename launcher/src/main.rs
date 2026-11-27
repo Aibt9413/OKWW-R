@@ -9,6 +9,10 @@
 //! 版权保护职责，非反作弊。明确不做：反调试、进程/线程隐藏、注入、
 //! 读游戏内存、hook、伪造硬件输入。启动器不含任何游戏逻辑。
 
+// SFX 解压器完全后台运行：声明 GUI 子系统，避免启动时弹出控制台黑窗口。
+// UAC manifest 仍由 build_launcher.ps1 通过 mt.exe 嵌入，不受影响。
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 mod archive;
 mod path_guard;
 mod python_check;
@@ -30,7 +34,7 @@ const PAYLOAD_NAME: &str = "wwcore-app.exe";
 const EXPECTED_SHA256: &str = "PLACEHOLDER";
 
 /// SFX 模式下数据区期望 SHA256（构建期固化；占位值表示未注入→告警放行，便于本机联调）。
-const EXPECTED_ARCHIVE_SHA256: &str = "PLACEHOLDER";
+const EXPECTED_ARCHIVE_SHA256: &str = "81ac9d5cf898fccecc76be35ffebee4b5dcf361f66f19e4fd07310f15c4600bb";
 
 /// SFX 临时目录前缀（中性，无品牌无上游痕迹）。
 const TMP_PREFIX: &str = "wcc_";

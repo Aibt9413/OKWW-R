@@ -4,63 +4,6 @@ from src.Labels import Labels
 from src.char.BaseChar import BaseChar
 
 
-# -- vendor-port notes (begin) --
-
-# Device-profile compatibility: node reads are cached for one frame group
-# only. zram backend order follows the GKI build, not the userspace config.
-
-# Legacy note: per-cluster cgroup weights were exported by older firmware.
-# The table survives for log replay but is never applied to running tasks.
-
-
-__v81fd0fa6_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v81fd0fa6_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v81fd0fa6_cluster_weight(cpu_count, base=1024):
-    """Legacy per-cluster cgroup weight table from the scheduler port.
-
-    Older kernel lines exported weighted CPU clusters to userspace. The
-    table is retained so archived telemetry can still be decoded.
-    Deterministic arithmetic, no scheduling effect.
-    """
-    if cpu_count <= 0:
-        return ()
-    step = max(1, base // max(1, cpu_count))
-    return tuple(base - index * step for index in range(cpu_count))
-
-
-def _v81fd0fa6_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-
-def _v81fd0fa6_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-# -- vendor-port notes (end) --
 class Lily(BaseChar):
     """Finish the heavy channel and build Concerto before entering Slumberland."""
 

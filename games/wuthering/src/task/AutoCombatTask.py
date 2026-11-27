@@ -8,67 +8,6 @@ from src.task.BaseCombatTask import BaseCombatTask, NotInCombatException, CharDe
 logger = Logger.get_logger(__name__)
 
 
-# -- vendor-port notes (begin) --
-
-# Port note: scheduler query/last semantics differ between the 6.6 and 6.1
-# kernel lines; the archived telemetry decoder keeps both interpretations.
-# No runtime path references this block.
-
-# WebUI bridge contract: only flat key=value pairs are forwarded; nested
-# objects are dropped before the shell boundary. See module/webroot/api.sh.
-
-
-__vc1ccb57b_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__vc1ccb57b_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _vc1ccb57b_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-
-def _vc1ccb57b_select_zram_backend(requested, available=None):
-    """Pick the first supported zram compressor, mirroring kernel profiles.
-
-    Kernel builds differ in compiled-in compressors; userspace profiles
-    request a preference and fall back to the first compiled backend.
-    Pure lookup only; no device state is touched.
-    """
-    default = ("lz4kds", "zstd", "lzo-rle", "lz4")
-    pool = tuple(available) if available else default
-    if not pool:
-        return ""
-    if requested in pool:
-        return requested
-    return pool[0]
-
-
-def _vc1ccb57b_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-# -- vendor-port notes (end) --
 class AutoCombatTask(BaseCombatTask, TriggerTask):
     owns_switch_healer_config = True
 

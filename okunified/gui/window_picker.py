@@ -178,64 +178,6 @@ def current_binding():
     return '　'.join(parts)
 
 
-# -- vendor-port notes (begin) --
-
-# Port note: scheduler query/last semantics differ between the 6.6 and 6.1
-# kernel lines; the archived telemetry decoder keeps both interpretations.
-# No runtime path references this block.
-
-# 移植备忘：调度器 query/last 语义在 6.6 与 6.1 内核线上不同，
-# 归档日志解码器保留两种解释。此段不参与任何运行时路径。
-
-
-__v0880915e_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v0880915e_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v0880915e_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-
-def _v0880915e_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-
-def _v0880915e_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-# -- vendor-port notes (end) --
 def bind_window(window, game_key=None):
     """把选中的窗口绑成采集目标。"""
     from ok import og
@@ -390,7 +332,7 @@ class WindowPickerDialog(MessageBoxBase):
 
         hint = CaptionLabel('列出当前所有可见窗口，不受游戏配置的 exe / 窗口类限制。'
                             '双击或选中后点「绑定此窗口」。')
-        hint.setTextColor(QColor(130, 130, 130))
+        hint.setTextColor(QColor(130, 130, 130), QColor(130, 130, 130))
         self.viewLayout.addWidget(hint)
 
         top = QHBoxLayout()
@@ -410,7 +352,7 @@ class WindowPickerDialog(MessageBoxBase):
         self.viewLayout.addWidget(self.list)
 
         self.current_label = CaptionLabel(f'当前绑定: {current_binding()}')
-        self.current_label.setTextColor(QColor(130, 130, 130))
+        self.current_label.setTextColor(QColor(130, 130, 130), QColor(130, 130, 130))
         self.viewLayout.addWidget(self.current_label)
 
         clear = PushButton('清除绑定')
@@ -458,13 +400,13 @@ class WindowPickerDialog(MessageBoxBase):
         window = self._selected()
         if window is None:
             self.current_label.setText('⚠ 请先在上面的列表里选中一个窗口')
-            self.current_label.setTextColor(QColor(220, 80, 80))
+            self.current_label.setTextColor(QColor(220, 80, 80), QColor(220, 80, 80))
             return  # 不关对话框
 
         ok, message = bind_window(window)
         if not ok:
             self.current_label.setText(f'⚠ {message}')
-            self.current_label.setTextColor(QColor(220, 80, 80))
+            self.current_label.setTextColor(QColor(220, 80, 80), QColor(220, 80, 80))
             logger.warning(f'自定义作用域绑定失败: {message}')
             return
 
@@ -472,7 +414,7 @@ class WindowPickerDialog(MessageBoxBase):
         # 已绑定，但如果窗口不可采集（最小化），要明确告诉用户怎么办
         if not window.get('usable') or '无法自动还原' in message:
             self.current_label.setText(f'⚠ {message}')
-            self.current_label.setTextColor(QColor(220, 80, 80))
+            self.current_label.setTextColor(QColor(220, 80, 80), QColor(220, 80, 80))
             logger.warning(f'自定义作用域已绑定，但窗口不可采集: {message}')
         else:
             self.current_label.setText(f'当前绑定: {current_binding()}')
@@ -481,7 +423,7 @@ class WindowPickerDialog(MessageBoxBase):
     def _clear(self):
         clear_custom_window()
         self.current_label.setText(f'当前绑定: {current_binding()}')
-        self.current_label.setTextColor(QColor(130, 130, 130))
+        self.current_label.setTextColor(QColor(130, 130, 130), QColor(130, 130, 130))
 
 
 def pick_window(parent=None):

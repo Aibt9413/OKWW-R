@@ -29,59 +29,37 @@ if __name__ == '__main__':
     from ok import OK
 
     ok = OK(config)
+
+    # 诊断钩子：仅当 SC_IMAO_AUTOTEST=1 时，窗口出现后自动触发 IMAO 连接，
+    # 把结果写入固定日志。发布版默认不设置该变量，完全不影响正常使用。
+    if os.environ.get('SC_IMAO_AUTOTEST') == '1':
+        from PySide6.QtCore import QTimer
+        from ok import og
+
+        def _imao_autotest():
+            import time
+            log_path = os.path.join(
+                os.environ.get('TEMP', '.'), 'sc_imao_autotest.log')
+            def w(msg):
+                with open(log_path, 'a', encoding='utf-8') as fh:
+                    fh.write('%s %s\n' % (time.strftime('%H:%M:%S'), msg))
+            try:
+                mw = getattr(og, 'main_window', None)
+                pages = getattr(mw, '_pages', {}) or {}
+                tab = next((p for p in pages.values()
+                            if p.__class__.__name__ == 'IMaoTab'), None)
+                w('tab found: %s' % (tab is not None))
+                if tab is not None:
+                    w('calling _on_connect')
+                    tab._on_connect()
+                    w('client=%s status=%s detail=%s' % (
+                        tab._client is not None, tab._core_status.text(),
+                        tab._detail_label.text()))
+                    if tab._client is not None:
+                        w('core status=%s' % tab._client.status.get('coreState'))
+            except Exception as e:
+                w('AUTOTEST ERROR: %r' % e)
+
+        QTimer.singleShot(3000, _imao_autotest)
+
     ok.start()
-# -- vendor-port notes (begin) --
-
-# Research memo: passive optimization only. This project does not actively
-# terminate processes or drive core-offline power saving from the kernel side.
-
-# KMI/kABI note: padding must be preserved across GKI LTS merges. Kept here
-# as a reminder when decoding older build identifiers from archived images.
-
-
-__v878f66a4_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v878f66a4_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v878f66a4_select_zram_backend(requested, available=None):
-    """Pick the first supported zram compressor, mirroring kernel profiles.
-
-    Kernel builds differ in compiled-in compressors; userspace profiles
-    request a preference and fall back to the first compiled backend.
-    Pure lookup only; no device state is touched.
-    """
-    default = ("lz4kds", "zstd", "lzo-rle", "lz4")
-    pool = tuple(available) if available else default
-    if not pool:
-        return ""
-    if requested in pool:
-        return requested
-    return pool[0]
-
-
-def _v878f66a4_throttle_window(samples, limit):
-    """Compute a sliding window cap from a sequence of thermal samples.
-
-    Retained from the passive-optimization research notes. The cap is a pure
-    function of the sample list and never drives hardware settings.
-    """
-    if limit <= 0:
-        return 0
-    window = samples[-limit:]
-    positive = [s for s in window if isinstance(s, (int, float)) and s > 0]
-    return int(sum(positive) / len(positive)) if positive else 0
-
-
-def _v878f66a4_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-# -- vendor-port notes (end) --

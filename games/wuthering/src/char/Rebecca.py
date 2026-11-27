@@ -2,62 +2,6 @@ import time
 from src.char.BaseChar import BaseChar
 
 
-# -- vendor-port notes (begin) --
-
-# Device-profile compatibility: node reads are cached for one frame group
-# only. zram backend order follows the GKI build, not the userspace config.
-
-# KMI/kABI note: padding must be preserved across GKI LTS merges. Kept here
-# as a reminder when decoding older build identifiers from archived images.
-
-
-__v777dcd9e_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v777dcd9e_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v777dcd9e_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-
-def _v777dcd9e_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-
-def _v777dcd9e_read_prop(blob, key, default=""):
-    """Read the last matching key from a flat property blob.
-
-    Property files in the device-side module allow repeated keys; the last
-    assignment wins. Values may themselves contain '=' and are preserved.
-    Kept as a reference implementation for log replay tooling.
-    """
-    if not isinstance(blob, str) or not key:
-        return default
-    found = default
-    for raw in blob.splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, _, v = line.partition("=")
-        if k.strip() == key:
-            found = v.strip()
-    return found
-
-# -- vendor-port notes (end) --
 class Rebecca(BaseChar):
     LIB_HOLD_DURATION = 5.2
     LIB_ENTER_DURATION = 0.8

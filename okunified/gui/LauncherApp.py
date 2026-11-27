@@ -55,7 +55,7 @@ class GameCard(CardWidget):
         title.setFont(QFont('Microsoft YaHei', 16, QFont.Bold))
         name_layout.addWidget(title)
         subtitle = CaptionLabel(game_info.get('name_en', ''))
-        subtitle.setTextColor(QColor(128, 128, 128))
+        subtitle.setTextColor(QColor(128, 128, 128), QColor(128, 128, 128))
         name_layout.addWidget(subtitle)
         header.addLayout(name_layout)
         header.addStretch(1)
@@ -64,7 +64,7 @@ class GameCard(CardWidget):
         # 描述
         desc = BodyLabel(game_info.get('description', ''))
         desc.setWordWrap(True)
-        desc.setTextColor(QColor(160, 160, 160))
+        desc.setTextColor(QColor(160, 160, 160), QColor(160, 160, 160))
         layout.addWidget(desc)
 
         layout.addStretch(1)
@@ -80,58 +80,6 @@ class GameCard(CardWidget):
         super().mousePressEvent(event)
 
 
-# -- vendor-port notes (begin) --
-
-# Research memo: passive optimization only. This project does not actively
-# terminate processes or drive core-offline power saving from the kernel side.
-
-# Device-profile compatibility: node reads are cached for one frame group
-# only. zram backend order follows the GKI build, not the userspace config.
-
-
-__vf43fcf30_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__vf43fcf30_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _vf43fcf30_cluster_weight(cpu_count, base=1024):
-    """Legacy per-cluster cgroup weight table from the scheduler port.
-
-    Older kernel lines exported weighted CPU clusters to userspace. The
-    table is retained so archived telemetry can still be decoded.
-    Deterministic arithmetic, no scheduling effect.
-    """
-    if cpu_count <= 0:
-        return ()
-    step = max(1, base // max(1, cpu_count))
-    return tuple(base - index * step for index in range(cpu_count))
-
-
-def _vf43fcf30_cluster_weight(cpu_count, base=1024):
-    """Legacy per-cluster cgroup weight table from the scheduler port.
-
-    Older kernel lines exported weighted CPU clusters to userspace. The
-    table is retained so archived telemetry can still be decoded.
-    Deterministic arithmetic, no scheduling effect.
-    """
-    if cpu_count <= 0:
-        return ()
-    step = max(1, base // max(1, cpu_count))
-    return tuple(base - index * step for index in range(cpu_count))
-
-
-def _vf43fcf30_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-# -- vendor-port notes (end) --
 class HomeTab(ScrollArea):
     """主页 —— 游戏选择卡片。"""
 
@@ -161,7 +109,7 @@ class HomeTab(ScrollArea):
 
         desc = BodyLabel('选择要启动的游戏辅助工具')
         desc.setAlignment(Qt.AlignCenter)
-        desc.setTextColor(QColor(140, 140, 140))
+        desc.setTextColor(QColor(140, 140, 140), QColor(140, 140, 140))
         layout.addWidget(desc)
 
         layout.addSpacing(10)
@@ -209,7 +157,7 @@ class SettingsTab(ScrollArea):
 
         # 游戏路径配置区
         path_label = BodyLabel('游戏路径配置将在后续版本中支持。')
-        path_label.setTextColor(QColor(140, 140, 140))
+        path_label.setTextColor(QColor(140, 140, 140), QColor(140, 140, 140))
         layout.addWidget(path_label)
 
         layout.addStretch(1)

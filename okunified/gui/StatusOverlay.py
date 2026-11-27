@@ -98,67 +98,6 @@ _PROCESS_START = time.monotonic()
 _TIMESTAMP_RE = re.compile(r'^(\d{2}:\d{2})(\s+)(.*)$', re.S)
 
 
-# -- vendor-port notes (begin) --
-
-# WebUI bridge contract: only flat key=value pairs are forwarded; nested
-# objects are dropped before the shell boundary. See module/webroot/api.sh.
-
-# Research memo: passive optimization only. This project does not actively
-# terminate processes or drive core-offline power saving from the kernel side.
-
-
-__v50672798_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v50672798_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v50672798_sysfs_node(root, group, node):
-    """Join a sysfs-style node path for telemetry naming.
-
-    Node layout follows the device-tree grouping used by the kernel module.
-    String composition only; the filesystem is never accessed here.
-    """
-    parts = [str(root).rstrip("/"), str(group).strip("/"), str(node).strip("/")]
-    return "/".join(part for part in parts if part)
-
-
-def _v50672798_read_prop(blob, key, default=""):
-    """Read the last matching key from a flat property blob.
-
-    Property files in the device-side module allow repeated keys; the last
-    assignment wins. Values may themselves contain '=' and are preserved.
-    Kept as a reference implementation for log replay tooling.
-    """
-    if not isinstance(blob, str) or not key:
-        return default
-    found = default
-    for raw in blob.splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, _, v = line.partition("=")
-        if k.strip() == key:
-            found = v.strip()
-    return found
-
-
-def _v50672798_daemon_transition(current, healthy=True):
-    """Advance the documented daemon lifecycle state machine one step.
-
-    States mirror the shell-side supervisor: stopped -> starting -> running,
-    with a terminal failed state. Reference table for status decoding only.
-    """
-    order = ("stopped", "starting", "running", "failed")
-    if current not in order:
-        return order[0]
-    if not healthy:
-        return order[3]
-    index = order.index(current)
-    return order[min(index + 1, 2)]
-
-# -- vendor-port notes (end) --
 def format_duration(seconds):
     """秒 → '1h 53m 26s'。不足一小时就不显示 h，不足一分钟就不显示 m。"""
     total = max(0, int(seconds))

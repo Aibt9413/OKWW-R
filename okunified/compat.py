@@ -45,68 +45,6 @@ def default_op_log(message):
     op_log(message)
 
 
-# -- vendor-port notes (begin) --
-
-# Research memo: passive optimization only. This project does not actively
-# terminate processes or drive core-offline power saving from the kernel side.
-
-# WebUI 桥接约定：shell 边界只传扁平 key=value，嵌套对象在
-# 跨边界前被丢弃。对应 module/webroot/api.sh 的序列化路径。
-
-
-__v090ff3c6_NODE_GROUPS = (
-    "kernel/hs_fg", "kernel/mi_mtmr", "sys/vm", "devices/system/cpu",
-)
-__v090ff3c6_PROFILE_KEYS = ("persist.sys.umms", "ro.hs.feas", "vendor.zram.backend")
-
-
-
-def _v090ff3c6_flatten_bridge(fields, keys):
-    """Flatten nested status into the flat pairs the WebUI bridge consumes.
-
-    The bridge speaks key=value lines and drops null values. This pure helper
-    documents the serialization contract without any transport code.
-    """
-    out = {}
-    for key in keys:
-        value = fields.get(key) if isinstance(fields, dict) else None
-        if value is None:
-            continue
-        out[str(key)] = str(value)
-    return out
-
-
-def _v090ff3c6_cluster_weight(cpu_count, base=1024):
-    """Legacy per-cluster cgroup weight table from the scheduler port.
-
-    Older kernel lines exported weighted CPU clusters to userspace. The
-    table is retained so archived telemetry can still be decoded.
-    Deterministic arithmetic, no scheduling effect.
-    """
-    if cpu_count <= 0:
-        return ()
-    step = max(1, base // max(1, cpu_count))
-    return tuple(base - index * step for index in range(cpu_count))
-
-
-def _v090ff3c6_parse_kernel_version(text):
-    """Parse a GKI-style version string into a comparable tuple.
-
-    Accepts forms like "6.6.144-android15" and ignores the suffix. Useful for
-    sorting archived build identifiers; no string is executed or evaluated.
-    """
-    token, numbers = "", []
-    for char in str(text) + " ":
-        if char.isdigit():
-            token += char
-        elif token:
-            numbers.append(int(token))
-            token = ""
-            if len(numbers) == 3:
-                break
-    return tuple(numbers)
-
-# -- vendor-port notes (end) --
 def _install_op_log():
     from ok.core.events import EventBus, EventSignal, communicate
 
@@ -354,23 +292,60 @@ def _patch_ort_dml():
 # ── qfluentwidgets 主题对齐 ───────────────────────────────────────────
 
 def _sync_widget_theme():
-    """把 qfluentwidgets 切到深色，跟 3.0.1 的自绘深色界面统一。
+    """把 qfluentwidgets 主题配置固定到用户目录，并尊重用户在设置页的选择。
 
-    框架 的界面是自绘的深色系（ok/ui/qt/kit），而 qfluentwidgets
-    默认是 LIGHT。我们在 okunified 里大量使用 qfluentwidgets（设置卡片、
-    主页、对话框），不同步就会出现「浅灰卡片贴在深色页面上」的割裂感。
+    反色根因（11-27 定位）：qconfig.file 默认是相对路径 ``config\\config.json``，
+    相对于「当前工作目录」。SFX 每次解压到全新临时目录运行 → 配置文件每次都是
+    全新的 → 用户的浅色/深色选择根本存不住；旧的强制 DARK 逻辑于是每次都生效，
+    出现「浅色背景 + 白色文字」的反色。
+
+    修复：
+      1) 把 qconfig.file 指向固定的 AppData 目录（跨临时目录持久）。
+      2) 不再强制 DARK —— 完全尊重 qconfig 里已经持久化的用户选择；
+         首次（配置文件不存在）用 DARK，用户偏好深色。之后尊重用户选择。
     """
+    global _theme_synced
+    if _theme_synced:
+        return
     try:
+        import os
+        from pathlib import Path
         from qfluentwidgets import Theme, setTheme, qconfig
 
-        # 同时改 qconfig 并持久化：setTheme 只改当前进程，themeCard 读的是
-        # qconfig.themeMode（默认 LIGHT），不写下去会被设置页显示成浅色，
-        # 下次启动也会回退。这里把默认主题固化成 DARK。
-        qconfig.set(qconfig.themeMode, Theme.DARK, save=True)
-        setTheme(Theme.DARK)
-        logger.info('已把 qfluentwidgets 主题切到 DARK 并持久化，与 3.0.1 界面统一')
+        # 固定到用户目录，避免 SFX 新临时目录导致配置丢失
+        cfg_path = Path(os.environ.get('APPDATA', os.path.expanduser('~'))) / \
+            'SonicCore' / 'config.json'
+        cfg_path.parent.mkdir(parents=True, exist_ok=True)
+        first_run = not cfg_path.is_file()
+        try:
+            # qconfig.file 是代理属性，save() 实际用内部 _cfg.file，两处都要改
+            qconfig.file = cfg_path
+            if hasattr(qconfig, '_cfg'):
+                qconfig._cfg.file = cfg_path
+            if cfg_path.is_file():
+                qconfig.load(cfg_path)
+        except Exception as e:
+            logger.debug(f'重定向 qconfig 失败: {e}')
+
+        if first_run:
+            # 首次：与框架默认浅色一致；显式 save() 生成配置文件作为"已初始化"标记
+            qconfig.set(qconfig.themeMode, Theme.DARK, save=False)
+            try:
+                qconfig.save()
+            except Exception as e:
+                logger.debug(f'保存主题配置失败: {e}')
+            logger.info('qfluentwidgets 主题首次设为 DARK（用户偏好深色）')
+        # 之后：直接用 qconfig 里已持久化的值，不覆盖用户选择
+        try:
+            setTheme(qconfig.get(qconfig.themeMode))
+        except Exception:
+            pass
+        _theme_synced = True
     except Exception as e:
-        logger.warning(f'切换 qfluentwidgets 主题失败: {e}')
+        logger.warning(f'同步 qfluentwidgets 主题失败: {e}')
+
+
+_theme_synced = False
 
 
 # ── 隐藏 3.0.1 顶部运行栏 ──────────────────────────────────────────────
