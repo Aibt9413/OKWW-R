@@ -2,7 +2,7 @@
 
 基于 [OKWW-R](https://github.com/Aibt9413/OKWW-R)（其上游为 [ok-wuthering-waves](https://github.com/ok-oldking/ok-wuthering-waves)）的二改衍生分支。
 
-> 本项目最初用于测试 AI 代码生成的质量。在 OKWW-R 的自动化框架基础上，改造了启动器界面，并增加了版权保护与发布相关能力：模型 DPAPI 不落盘加密、Rust SHA256 校验壳、进程名中性化、静态混淆（版权保护，不做动态反作弊对抗）、单 exe SFX 封装、管理员权限与纯英文路径校验、系统 Python 缺失提示。
+> 本项目最初用于测试 AI 代码生成的质量。在 OKWW-R 的自动化框架基础上，改造了启动器界面，并增加了版权保护与发布相关能力：模型 DPAPI 不落盘加密、Rust SHA256 校验壳、进程名中性化、静态混淆（版权保护，不做动态反作弊对抗）、单 exe SFX 封装、管理员权限与纯英文路径校验、系统 Python 缺失提示。集成了[IMAO](https://github.com/kahvia-d/IMAO)地图叠加层功能
 >
 > 保留 SonicCore 品牌，清空了上游工坊 / GitHub submodule URL，日志名中性化。
 
